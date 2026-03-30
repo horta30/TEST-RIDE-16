@@ -102,24 +102,43 @@ body{display:flex;flex-direction:column;font-family:'Barlow Condensed',sans-seri
 
 /* ══ TOPBAR ══ */
 #topbar{flex-shrink:0;background:rgba(8,8,8,.96);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);padding:0 12px;height:50px;
-  display:flex;align-items:center;gap:10px;z-index:1000;}
+  border-bottom:1px solid var(--border);padding:0 10px;height:56px;
+  display:flex;align-items:center;gap:8px;z-index:1000;}
 #back-btn{background:transparent;border:1px solid var(--border);color:var(--grey);
-  font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.12em;
-  text-transform:uppercase;padding:6px 10px;cursor:pointer;transition:all .2s;
+  font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;padding:5px 8px;cursor:pointer;transition:all .2s;
   text-decoration:none;display:inline-block;white-space:nowrap;flex-shrink:0;}
 #back-btn:hover{border-color:var(--orange);color:var(--orange);}
 
-/* Cronómetro */
-#chrono-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-#chrono{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.05em;
-  color:var(--white);line-height:1;cursor:pointer;}
+/* Cronómetro — 15% más grande */
+#chrono-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+#chrono{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,6vw,32px);
+  letter-spacing:.05em;color:var(--white);line-height:1;}
 #chrono.running{color:var(--green);}
 #chrono.warn{color:var(--amber);}
 #chrono.over{color:var(--red);animation:blink .8s infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
 #chrono-label{font-size:8px;letter-spacing:.25em;text-transform:uppercase;
   color:var(--grey);text-align:center;}
+
+/* CTA cronómetro — botón más grande bajo el reloj */
+#chrono-cta{
+  flex-shrink:0;
+  background:var(--dark);border:1px solid var(--border);
+  color:var(--grey);
+  font-family:'Barlow Condensed',sans-serif;font-weight:700;
+  font-size:clamp(10px,2.5vw,13px);letter-spacing:.2em;text-transform:uppercase;
+  padding:8px 14px;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px));
+  transition:all .2s;white-space:nowrap;flex-shrink:0;border:none;
+}
+#chrono-cta.ready{background:var(--orange);color:var(--black);}
+#chrono-cta.running{background:rgba(76,175,80,.15);color:var(--green);border:1px solid rgba(76,175,80,.3);}
+#chrono-cta.paused{background:rgba(255,179,71,.1);color:var(--amber);border:1px solid rgba(255,179,71,.3);}
+.cta-pulse{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;
+  animation:ctap 1.2s infinite;}
+@keyframes ctap{0%,100%{opacity:1;}50%{opacity:.3;}}
 
 #gps-btn{background:var(--orange);color:var(--black);
   font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
@@ -285,10 +304,14 @@ body{display:flex;flex-direction:column;font-family:'Barlow Condensed',sans-seri
   <a href="index.html" id="back-btn">← Volver</a>
 
   <!-- Cronómetro central -->
-  <div id="chrono-wrap" onclick="toggleChrono()">
+  <div id="chrono-wrap">
     <div id="chrono">00:00</div>
-    <div id="chrono-label">Toca para iniciar</div>
+    <div id="chrono-label">Objetivo: 40–50 min</div>
   </div>
+  <button id="chrono-cta" class="ready" onclick="toggleChrono()">
+    <div class="cta-pulse"></div>
+    <span id="chrono-cta-label">INICIAR</span>
+  </button>
 
   <button id="gps-btn" onclick="toggleGPS()">
     <div class="gps-dot" id="gps-dot"></div>
@@ -483,7 +506,9 @@ function startChrono(){
   chronoRunning = true;
   chronoStart   = Date.now() - chronoElapsed;
   document.getElementById('chrono').classList.add('running');
-  document.getElementById('chrono-label').textContent = 'En ruta — toca para pausar';
+  document.getElementById('chrono-label').textContent = 'En ruta';
+  const ctaEl=document.getElementById('chrono-cta');
+  ctaEl.className='running'; document.getElementById('chrono-cta-label').textContent='PAUSAR';
   document.getElementById('pace-bar').classList.add('show');
   chronoInterval = setInterval(updateChrono, 1000);
   if(chronoElapsed === 0){
@@ -497,7 +522,9 @@ function pauseChrono(){
   chronoElapsed = Date.now() - chronoStart;
   clearInterval(chronoInterval);
   document.getElementById('chrono').classList.remove('running');
-  document.getElementById('chrono-label').textContent = 'Pausado — toca para continuar';
+  document.getElementById('chrono-label').textContent = 'Pausado';
+  const ctaEl2=document.getElementById('chrono-cta');
+  ctaEl2.className='paused'; document.getElementById('chrono-cta-label').textContent='CONTINUAR';
 }
 
 function resetChrono(){
@@ -799,7 +826,11 @@ window.toggleGPS=function(){
           notify(`📍 WP${wp.id}: ${wp.name}`, msg, wp.type==='summit');
           toast(`📍 WP${wp.id}: ${wp.name}`, wp.type==='summit'?'danger':'alert', 5000);
           setTimeout(()=>openPanel(wp), 800);
-          if(wp.id===1&&!chronoRunning&&chronoElapsed===0) startChrono();
+          if(wp.id===1&&!chronoRunning&&chronoElapsed===0){
+          startChrono();
+          const ctaEl3=document.getElementById('chrono-cta');
+          if(ctaEl3){ ctaEl3.className='running'; document.getElementById('chrono-cta-label').textContent='PAUSAR'; }
+        }
         }
       });
 
